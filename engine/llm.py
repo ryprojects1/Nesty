@@ -36,6 +36,8 @@ moving chat off the platform (WhatsApp, email), unusual payment methods
 no contract or refusing ID, a price that seems too good to be true,
 an inconsistent story, or templated/copied text.
 Use these ids when they fit: pay_before_viewing, landlord_abroad, odd_payment, off_platform, urgency, no_contract, price_too_low. Only invent a new snake_case id for a sign that none of these cover.
+Normal estate-agent marketing language (e.g. 'fabulous', 'don't miss out', 'spacious') is NOT a red flag on its own. Offering viewings, a named letting agent, a tenancy agreement or a protected deposit are signs of a GENUINE listing: do not flag those, and lean towards no flags when they are present.
+Users often removed their personal details before pasting, so missing phone numbers, emails, names or odd gaps like 'contact us on or' are NOT red flags.
 Max 5 flags. The quote MUST be copied exactly from the listing.
 If the listing looks legitimate, return "flags": [] with 2-3 helpful general tips.
 Write advice for a stressed student: short and practical."""
