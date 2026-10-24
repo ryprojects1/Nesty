@@ -142,6 +142,16 @@ section { padding: clamp(64px, 9vw, 124px) 0; }
 .detail-chip { font-size: 0.88rem; background: var(--hl-soft); border: 1px solid #E9CF55; border-radius: 999px; padding: 5px 12px; color: var(--ink); }
 .mode { font-size: 0.85rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; display: inline-flex; gap: 8px; align-items: center; }
 .mode i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: block; }
+.mode[data-ai="off"] i { background: var(--muted); }
+.ai-toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500; color: var(--ink); }
+.ai-toggle input { width: 18px; height: 18px; accent-color: var(--green); margin: 0; cursor: pointer; }
+.ai-status { margin: 0 0 14px; font-size: 0.92rem; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+.ai-status[hidden] { display: none; }
+.ai-status .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+.ai-status[data-state="loading"] .dot { background: var(--green); animation: nesty-pulse 1.1s ease-in-out infinite; }
+.ai-status[data-state="done"] .dot { background: var(--green); }
+@keyframes nesty-pulse { 50% { opacity: 0.25; } }
+.flag .by { font-size: 0.75rem; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; margin-left: 8px; vertical-align: 2px; }
 .send { width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--ink); color: #fff; cursor: pointer; display: grid; place-items: center; transition: background 0.15s, transform 0.15s; }
 .send:hover:not(:disabled) { background: var(--ink-2); transform: translateY(-1px); }
 .send:disabled { background: var(--mist); color: #8695A4; cursor: not-allowed; }
@@ -282,6 +292,7 @@ footer .col-b a { font-weight: 600; color: var(--ink); text-underline-offset: 4p
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  .ai-status[data-state="loading"] .dot { animation: none; }
   .sheet mark { animation: none; background-size: 100% 100%; }
 }
 </style>
@@ -334,7 +345,7 @@ footer .col-b a { font-weight: 600; color: var(--ink); text-underline-offset: 4p
               <span class="detail-chip" id="detail-chip" hidden></span>
             </div>
             <div class="chat-right">
-              <span class="mode"><i></i>Instant rule check</span>
+              <span class="mode" id="mode" data-ai="on"><i></i><span id="mode-text">Rules + Gemma 4</span></span>
               <button class="send" type="submit" id="send" aria-label="Check this listing" disabled>
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true"><path d="M11 18V4M5 10l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </button>
@@ -350,7 +361,8 @@ footer .col-b a { font-weight: 600; color: var(--ink); text-underline-offset: 4p
         </form>
         <div class="chat-bar">
           <div class="exs"><span>Try an example</span><button class="ex" type="button" data-ex="obvious">Obvious scam</button><button class="ex" type="button" data-ex="subtle">Subtle scam</button><button class="ex" type="button" data-ex="legit">Genuine listing</button></div>
-          <span id="chat-note">Runs in your browser. Nothing is saved.</span>
+          <label class="ai-toggle"><input type="checkbox" id="ai-on" checked aria-describedby="chat-note"> Also ask Gemma 4</label>
+          <span id="chat-note">Rules run in your browser. Gemma 4 gets the text through Google. Nothing is saved.</span>
         </div>
       </div>
     </div>
@@ -370,8 +382,9 @@ footer .col-b a { font-weight: 600; color: var(--ink); text-underline-offset: 4p
           </div>
           <div>
             <h3>What we found</h3>
+            <p class="ai-status" id="r-ai" data-state="off" hidden aria-live="polite"><span class="dot" aria-hidden="true"></span><span id="r-ai-text"></span></p>
             <ul class="flags" id="r-flags"></ul>
-            <p class="fine">Nesty shows signs often seen in rental scams. It can be wrong, and it is not proof about any person. This page runs the rule checks. The full app also asks Gemma 4 to read for subtler signs.</p>
+            <p class="fine">Nesty shows signs often seen in rental scams. It can be wrong, and it is not proof about any person. The rule checks run in your browser. Gemma 4 then reads for subtler signs, unless you switch it off.</p>
           </div>
         </div>
       </div>
@@ -479,9 +492,9 @@ footer .col-b a { font-weight: 600; color: var(--ink); text-underline-offset: 4p
       </div>
       <div class="faq">
         <details><summary>Is Nesty free?</summary><p>Yes. It is free to use, there is no sign up, and the code is open source under the MIT license.</p></details>
-        <details><summary>Does Nesty save my listing or messages?</summary><p>No. On this page the check runs in your browser and nothing is sent anywhere. If you run the full app with a hosted AI, that text goes to the AI provider, so check the README for how your copy is set up.</p></details>
+        <details><summary>Does Nesty save my listing or messages?</summary><p>No. The rule checks run in your browser. If “Also ask Gemma 4” is ticked, the text goes to our small server, which passes it to Google’s Gemini API to run Gemma 4, then sends back the result. Our server does not store or log it. Untick the box and nothing leaves your browser.</p></details>
         <details><summary>Can Nesty prove someone is a scammer?</summary><p>No, and it never says so. It shows signs often seen in rental scams and quotes the words behind each one. It can be wrong, so use it to decide what to ask next.</p></details>
-        <details><summary>What does the AI do, and what if it is switched off?</summary><p>In the full app, Gemma 4 reads for subtler signs such as pressure, an odd story, or template wording. This page runs the rule checks only. If the AI is not available, the full app still runs every rule check and tells you so.</p></details>
+        <details><summary>What does the AI do, and what if it is switched off?</summary><p>In the full app, Gemma 4 reads for subtler signs such as pressure, an odd story, or template wording. The rule checks always run first and appear straight away. Gemma 4 then adds what it finds a few seconds later. If the AI is switched off or not available, you still get every rule check, and the page tells you so.</p></details>
         <details><summary>Where does the rent comparison come from?</summary><p>From SpareRoom’s Rental Index for Q3 2026, covering about 20 UK student cities. Nesty flags rent below 60% of the city average.</p></details>
         <details><summary>Does it work outside the UK?</summary><p>Not yet. The rent data and the advice are written for renting in the UK. More countries are a good first contribution.</p></details>
         <details><summary>What should I do if I think I have been targeted?</summary><p>Stop paying, keep every message, and report it to Action Fraud and to the site where you found the listing. Tell your university accommodation team too.</p></details>
@@ -719,27 +732,32 @@ function checkRules(text, price, cityKey) {
   return flags;
 }
 
-function buildAdvice(flags, level) {
+function buildAdvice(flags, level, aiAdvice) {
   const closing = level === "green" ? [GREEN_LINE] : ALWAYS_IF_RISKY.slice();
   const seen = new Set(closing.map((c) => c.toLowerCase()));
   const specific = [];
-  flags.forEach((f) => {
-    const line = ADVICE_BY_ID[f.id];
+  const add = (line) => {
+    line = String(line || "").trim();
     if (line && !seen.has(line.toLowerCase())) { seen.add(line.toLowerCase()); specific.push(line); }
-  });
+  };
+  flags.forEach((f) => add(ADVICE_BY_ID[f.id]));
+  (aiAdvice || []).forEach((a) => { if (typeof a === "string") add(a); });
   return specific.slice(0, Math.max(0, MAX_ADVICE - closing.length)).concat(closing);
 }
 
-function analyse(text, price, cityKey) {
-  text = (text || "").trim();
-  if (!text) return null;
-  const flags = checkRules(text, price, cityKey);
+function scoreResult(flags, aiAdvice) {
   flags.sort((a, b) => ORDER[a.severity] - ORDER[b.severity]);
   const ids = new Set(flags.map((f) => f.id));
   let score = Math.min(100, flags.reduce((t, f) => t + WEIGHTS[f.severity], 0));
   if (ids.has("pay_before_viewing") && ids.has("landlord_abroad")) score = Math.max(score, 80);
   const level = score >= 60 ? "red" : score >= 30 ? "amber" : "green";
-  return { score, level, flags, advice: buildAdvice(flags, level) };
+  return { score, level, flags, advice: buildAdvice(flags, level, aiAdvice) };
+}
+
+function analyse(text, price, cityKey) {
+  text = (text || "").trim();
+  if (!text) return null;
+  return scoreResult(checkRules(text, price, cityKey), []);
 }
 window.nestyAnalyse = analyse;
 
@@ -759,6 +777,81 @@ function highlight(text, flags) {
   let out = "", pos = 0;
   merged.forEach(([a, b, sev]) => { out += esc(text.slice(pos, a)) + '<mark class="m-' + sev + '">' + esc(text.slice(a, b)) + "</mark>"; pos = b; });
   return (out + esc(text.slice(pos))).replace(/\r/g, "").replace(/\n/g, "<br>");
+}
+
+/* Gemma 4, through our server (the API key lives there, never in this page) */
+const AI_URL = "https://sea-lion-app-w7duk.ondigitalocean.app/api/ai-check";
+const AI_TIMEOUT_MS = 45000;
+const MAX_AI_FLAGS = 5;
+
+async function aiCheck(text) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), AI_TIMEOUT_MS);
+  try {
+    const r = await fetch(AI_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: text.slice(0, 5000) }),
+      signal: ctrl.signal,
+    });
+    if (r.status === 429) return { error: "busy" };
+    if (!r.ok) return { error: "down" };
+    return await r.json();
+  } catch (e) {
+    return { error: "down" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Same safety checks as the Python engine: never trust the model's output blindly
+function cleanAiFlag(raw, text) {
+  if (!raw || typeof raw !== "object") return null;
+  const title = String(raw.title || "").trim();
+  const reason = String(raw.reason || "").trim();
+  if (!title || !reason) return null;
+  const id = String(raw.id || title).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "ai_flag";
+  let severity = String(raw.severity || "medium").toLowerCase();
+  if (!(severity in WEIGHTS)) severity = "medium";
+  let quote = String(raw.quote || "").trim();
+  if (quote && !text.toLowerCase().includes(quote.toLowerCase())) quote = ""; // no made up quotes
+  return { id, title, severity, quote, reason, source: "ai" };
+}
+
+function mergeAi(ruleFlags, ai, text) {
+  const flags = ruleFlags.map((f) => Object.assign({}, f));
+  const seen = new Set(flags.map((f) => f.id));
+  let added = 0;
+  (Array.isArray(ai.flags) ? ai.flags : []).forEach((raw) => {
+    if (added >= MAX_AI_FLAGS) return;
+    const f = cleanAiFlag(raw, text);
+    if (f && !seen.has(f.id)) { flags.push(f); seen.add(f.id); added += 1; }
+  });
+  return { result: scoreResult(flags, Array.isArray(ai.advice) ? ai.advice : []), added };
+}
+
+const aiBox = document.getElementById("ai-on");
+function aiWanted() { return aiBox.checked; }
+function syncAiUi() {
+  const on = aiWanted();
+  document.getElementById("mode").dataset.ai = on ? "on" : "off";
+  document.getElementById("mode-text").textContent = on ? "Rules + Gemma 4" : "Rules only";
+  document.getElementById("chat-note").textContent = on
+    ? "Rules run in your browser. Gemma 4 gets the text through Google. Nothing is saved."
+    : "Runs in your browser. Nothing is sent or saved.";
+}
+try { if (localStorage.getItem("nesty-ai") === "off") aiBox.checked = false; } catch (e) { /* storage blocked: keep default */ }
+aiBox.addEventListener("change", () => {
+  try { localStorage.setItem("nesty-ai", aiBox.checked ? "on" : "off"); } catch (e) { /* ignore */ }
+  syncAiUi();
+});
+syncAiUi();
+
+function setAiStatus(state, message) {
+  const el = document.getElementById("r-ai");
+  el.hidden = state === "hidden";
+  el.dataset.state = state;
+  document.getElementById("r-ai-text").textContent = message || "";
 }
 
 /* Page controls */
@@ -797,11 +890,9 @@ document.querySelectorAll(".ex").forEach((b) => b.addEventListener("click", () =
   details(); refresh(); run();
 }));
 
-function run() {
-  const price = parseFloat(priceEl.value) || 0;
-  const text = box.value;
-  const res = analyse(text, price, cityEl.value);
-  if (!res) return;
+let runId = 0;
+
+function render(res, text) {
   const lv = LEVELS[res.level];
   const head = $("r-head");
   head.style.setProperty("--lv", lv.color);
@@ -810,16 +901,47 @@ function run() {
   $("r-listing").innerHTML = highlight(text.trim(), res.flags);
   $("r-flags").innerHTML = res.flags.length ? res.flags.map((f) =>
     '<li class="flag" style="--sev:' + SEV[f.severity] + '"><span class="chip">' + (f.severity[0].toUpperCase() + f.severity.slice(1)) + "</span><b>" + esc(f.title) + "</b>" +
+    (f.source === "ai" ? '<span class="by">Gemma 4</span>' : "") +
     (f.quote ? "<br><em>\u201c" + esc(f.quote) + "\u201d</em>" : "") + "<p>" + esc(f.reason) + "</p></li>").join("")
     : '<li class="empty">No warning signs found in the text you pasted.</li>';
   $("r-advice").innerHTML = res.advice.map((a) => "<li>" + esc(a) + "</li>").join("");
+}
+
+async function run() {
+  const price = parseFloat(priceEl.value) || 0;
+  const text = box.value;
+  const res = analyse(text, price, cityEl.value);
+  if (!res) return;
+  const myRun = ++runId;
+
+  // 1. The rules answer straight away
+  render(res, text);
   const sec = $("result");
   sec.hidden = false;
   sec.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   sec.focus({ preventScroll: true });
+
+  // 2. Then Gemma 4 adds the subtler signs, if it is switched on
+  if (!aiWanted()) { setAiStatus("off", "Rule checks only. Tick \u201cAlso ask Gemma 4\u201d to add the AI check."); return; }
+  setAiStatus("loading", "Gemma 4 is reading for subtler signs\u2026");
+  const ai = await aiCheck(text.trim());
+  if (myRun !== runId) return; // a newer check started, so drop this answer
+
+  if (ai.error) {
+    setAiStatus("off", ai.error === "busy"
+      ? "Gemma 4 is busy right now. These are the rule checks. Try again in a minute."
+      : "Gemma 4 isn\u2019t available right now. These are the rule checks.");
+    return;
+  }
+  const merged = mergeAi(res.flags, ai, text.trim());
+  render(merged.result, text);
+  setAiStatus("done", merged.added
+    ? "Gemma 4 added " + merged.added + " more sign" + (merged.added === 1 ? "" : "s") + "."
+    : "Gemma 4 checked it too and found nothing new.");
 }
 $("again").addEventListener("click", () => {
   box.value = ""; priceEl.value = ""; cityEl.value = ""; details(); refresh();
+  runId++;
   $("result").hidden = true;
   $("check").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
   box.focus({ preventScroll: true });

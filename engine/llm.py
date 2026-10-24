@@ -73,7 +73,8 @@ def _parse_json(raw):
         return with_flags[-1]
     if found:
         return found[-1]
-    print("[llm] raw model output was:", raw[:500])
+    # Don't print the raw output: it can echo the listing the user pasted.
+    print(f"[llm] no JSON in model output ({len(raw)} chars)")
     raise ValueError("no JSON object in model output")
 
 
