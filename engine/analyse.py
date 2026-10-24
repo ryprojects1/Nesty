@@ -10,7 +10,7 @@ from engine.rules import check_rules
 
 WEIGHTS = {"high": 35, "medium": 20, "low": 10}
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
-LLM_TIMEOUT_SECONDS = 20   # A2's call has its own ~15s timeout; this is a safety net
+LLM_TIMEOUT_SECONDS = 100   # A2's call has its own ~15s timeout; this is a safety net
 MAX_AI_FLAGS = 5
 MAX_ADVICE = 6
 
