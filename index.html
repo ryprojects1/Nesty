@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nesty: check a rental listing before you pay</title>
+<meta name="description" content="Paste a rental listing and get a verdict in 10 seconds. Nesty marks the warning signs scammers use on students and tells you what to ask next. Free, open source, nothing saved.">
+<meta name="theme-color" content="#111B27">
+<meta property="og:title" content="Nesty: check a rental listing before you pay">
+<meta property="og:description" content="Know if a room is a scam before you pay a penny. Free and open source.">
+<meta property="og:type" content="website">
+<style>
+:root {
+  --ink: #111B27;
+  --ink-2: #1D2B3C;
+  --chalk: #F3F5F4;
+  --white: #FFFFFF;
+  --mist: #DCE4E8;
+  --line: #C9D3DA;
+  --hl: #FFE04D;
+  --hl-soft: #FFF1A6;
+  --red: #B3261E;
+  --amber: #9A5B00;
+  --green: #1F7A4D;
+  --muted: #4B5B6B;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --wrap: 1200px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+body { margin: 0; background: var(--chalk); color: var(--ink); font-family: var(--sans); font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+img, svg { max-width: 100%; display: block; }
+a { color: inherit; }
+.wrap { width: min(var(--wrap), 100% - 48px); margin-inline: auto; }
+.skip { position: absolute; left: -999px; top: 8px; background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 6px; z-index: 100; }
+.skip:focus { left: 8px; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
+.band-dark :focus-visible { outline-color: var(--hl); }
+
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -0.015em; margin: 0; }
+mark { background: var(--hl); color: var(--ink); padding: 0.04em 0.18em; border-radius: 3px; }
+
+/* Navigation */
+.nav { position: sticky; top: 0; z-index: 50; background: rgba(243, 245, 244, 0.92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; gap: 24px; }
+.logo { font-family: var(--sans); font-weight: 800; font-size: 1.45rem; letter-spacing: -0.02em; text-decoration: none; }
+.logo mark { padding: 0.02em 0.22em; border-radius: 4px; }
+.nav ul { display: flex; gap: 30px; list-style: none; margin: 0; padding: 0; font-size: 0.95rem; }
+.nav ul a { text-decoration: none; color: var(--muted); font-weight: 500; }
+.nav ul a:hover { color: var(--ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--ink); color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem; padding: 14px 24px; border-radius: 999px; border: 2px solid var(--ink); cursor: pointer; font-family: var(--sans); transition: background 0.15s, transform 0.15s; }
+.btn:hover { background: var(--ink-2); }
+.btn.small { padding: 10px 20px; font-size: 0.95rem; }
+.btn.ghost { background: transparent; color: var(--ink); }
+.btn.ghost:hover { background: var(--mist); }
+.btn.hl { background: var(--hl); color: var(--ink); border-color: var(--hl); }
+.btn.hl:hover { background: #FFD21F; border-color: #FFD21F; }
+.link { font-weight: 600; text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 2px; }
+
+/* Hero */
+.hero { position: relative; overflow: hidden; padding: clamp(40px, 6vw, 80px) 0 clamp(56px, 7vw, 96px); }
+.hero::before { content: ""; position: absolute; width: 760px; height: 700px; right: -200px; top: -160px; background: var(--mist); border-radius: 58% 42% 55% 45% / 48% 56% 44% 52%; z-index: 0; }
+.hero .wrap { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(12, 1fr); column-gap: 24px; row-gap: 36px; align-items: center; }
+.hero-copy { grid-column: 1 / span 7; grid-row: 1; }
+.hero h1 { text-wrap: balance; font-size: clamp(2.5rem, 5.4vw, 4.5rem); line-height: 1.02; letter-spacing: -0.025em; max-width: 12.5em; }
+.hero .sub { font-size: clamp(1.1rem, 1.6vw, 1.3rem); color: var(--muted); max-width: 30em; margin: 26px 0 0; }
+.cta-row { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; margin-top: 34px; }
+.hero .micro { margin: 18px 0 0; font-size: 0.92rem; color: var(--muted); }
+.hero-visual { grid-column: 8 / span 5; grid-row: 1; position: relative; padding: 40px 30px 52px 36px; }
+.sheet { position: relative; background: var(--white); border: 1px solid var(--line); border-radius: 6px; padding: 26px 26px 30px; transform: rotate(-1.8deg); box-shadow: 0 1px 0 rgba(17, 27, 39, 0.04), 0 24px 50px -20px rgba(17, 27, 39, 0.28); }
+.sheet h2 { font-size: 1.2rem; margin-bottom: 4px; padding-right: 96px; }
+.sheet .meta { font-size: 0.82rem; color: var(--muted); margin-bottom: 14px; }
+.sheet p { font-family: var(--serif); font-size: 1.02rem; line-height: 1.7; margin: 0; }
+.sheet mark { background: linear-gradient(var(--hl), var(--hl)) no-repeat left center / 0% 100%; box-shadow: inset 0 -3px 0 var(--red); animation: sweep 0.8s ease-out forwards; }
+.sheet mark:nth-of-type(1) { animation-delay: 0.5s; }
+.sheet mark:nth-of-type(2) { animation-delay: 0.9s; }
+.sheet mark:nth-of-type(3) { animation-delay: 1.3s; }
+.sheet mark:nth-of-type(4) { animation-delay: 1.7s; }
+.sheet mark:nth-of-type(5) { animation-delay: 2.1s; }
+@keyframes sweep { to { background-size: 100% 100%; } }
+.verdict { position: absolute; left: 6px; bottom: -6px; display: flex; align-items: center; gap: 16px; background: var(--red); color: #fff; padding: 16px 22px; border-radius: 10px; transform: rotate(1.6deg); box-shadow: 0 18px 36px -14px rgba(179, 38, 30, 0.6); }
+.verdict b { font-family: var(--serif); font-size: 1.5rem; line-height: 1.1; display: block; }
+.verdict span { font-size: 0.85rem; opacity: 0.92; }
+.verdict .num { font-family: var(--serif); font-size: 3rem; font-weight: 700; line-height: 1; }
+.note { position: absolute; right: -4px; top: -4px; width: 180px; background: var(--hl-soft); border: 1px solid #E9CF55; padding: 14px 16px; border-radius: 4px; transform: rotate(3deg); font-size: 0.88rem; line-height: 1.45; box-shadow: 0 14px 28px -16px rgba(17, 27, 39, 0.35); }
+.note b { display: block; font-size: 0.95rem; margin-bottom: 3px; }
+
+/* Trust band */
+.trust { border-block: 1px solid var(--line); background: var(--white); }
+.trust .wrap { display: grid; grid-template-columns: repeat(5, 1fr); }
+.trust .item { padding: 22px 20px; border-left: 1px solid var(--line); font-size: 0.92rem; line-height: 1.4; color: var(--muted); }
+.trust .item:first-child { border-left: 0; padding-left: 0; }
+.trust .item b { display: block; color: var(--ink); font-size: 1rem; margin-bottom: 2px; }
+
+/* Sections */
+section { padding: clamp(64px, 9vw, 124px) 0; }
+.sec-head { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; align-items: end; margin-bottom: clamp(32px, 5vw, 56px); }
+.sec-head h2 { grid-column: 1 / span 7; font-size: clamp(2rem, 4.4vw, 3.4rem); line-height: 1.06; }
+.sec-head p { grid-column: 9 / span 4; margin: 0; color: var(--muted); }
+
+/* Catches: bento */
+.bento { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+.card { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 26px 26px 28px; display: flex; flex-direction: column; gap: 10px; }
+.card h3 { font-size: 1.35rem; line-height: 1.2; }
+.card p { margin: 0; color: var(--muted); font-size: 0.97rem; line-height: 1.55; }
+.card .quote { margin-top: auto; padding-top: 12px; font-family: var(--serif); font-size: 1.02rem; }
+.card.big { grid-column: span 6; grid-row: span 2; background: var(--ink); color: #fff; border-color: var(--ink); padding: 36px; justify-content: flex-start; }
+.card.big h3 { font-size: clamp(1.8rem, 3vw, 2.5rem); line-height: 1.08; }
+.card.big p { color: #C5D0DB; font-size: 1.08rem; max-width: 28em; }
+.card.big .quote { font-size: 1.55rem; line-height: 1.6; }
+.card.c3 { grid-column: span 3; }
+.card.c5 { grid-column: span 5; }
+.card.c7 { grid-column: span 7; background: var(--mist); border-color: var(--mist); }
+.bars { display: grid; gap: 10px; margin-top: 8px; font-size: 0.9rem; }
+.bar { display: grid; grid-template-columns: 150px 1fr 56px; align-items: center; gap: 12px; }
+.bar i { display: block; height: 14px; border-radius: 7px; background: var(--ink); }
+.bar i.low { background: var(--red); }
+.bar b { text-align: right; font-variant-numeric: tabular-nums; }
+.bars small { color: var(--muted); font-size: 0.8rem; }
+
+/* How it works */
+.how { background: var(--white); border-block: 1px solid var(--line); }
+.steps { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; align-items: start; }
+.step { grid-column: span 4; padding-top: 22px; border-top: 2px solid var(--ink); }
+.step:nth-child(2) { margin-top: 44px; }
+.step:nth-child(3) { margin-top: 88px; }
+.step .n { font-family: var(--serif); font-size: 4.2rem; line-height: 1; font-weight: 600; display: block; margin-bottom: 10px; }
+.step h3 { font-size: 1.5rem; margin-bottom: 8px; }
+.step p { margin: 0; color: var(--muted); max-width: 22em; }
+
+/* Chat box (the main control) */
+.chat-wrap { grid-column: 1 / span 10; grid-row: 2; position: relative; }
+.chat { position: relative; z-index: 2; background: var(--white); border: 1px solid var(--line); border-radius: 28px; box-shadow: 0 30px 70px -34px rgba(17, 27, 39, 0.45), 0 1px 0 rgba(17, 27, 39, 0.04); transition: box-shadow 0.15s, border-color 0.15s; }
+.chat:focus-within { border-color: var(--ink); box-shadow: 0 0 0 5px rgba(255, 224, 77, 0.65), 0 30px 70px -34px rgba(17, 27, 39, 0.45); }
+.chat textarea { display: block; width: 100%; min-height: 150px; max-height: 380px; border: 0; outline: 0; resize: none; background: transparent; font-family: var(--serif); font-size: 1.25rem; line-height: 1.6; color: var(--ink); padding: 26px 30px 8px; border-radius: 28px 28px 0 0; }
+.chat textarea::placeholder { color: #66768A; }
+.chat-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 14px 14px 18px; }
+.chat-left, .chat-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.plus { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; display: grid; place-items: center; transition: background 0.15s; }
+.plus:hover, .plus[aria-expanded="true"] { background: var(--mist); }
+.detail-chip { font-size: 0.88rem; background: var(--hl-soft); border: 1px solid #E9CF55; border-radius: 999px; padding: 5px 12px; color: var(--ink); }
+.mode { font-size: 0.85rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; display: inline-flex; gap: 8px; align-items: center; }
+.mode i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: block; }
+.send { width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--ink); color: #fff; cursor: pointer; display: grid; place-items: center; transition: background 0.15s, transform 0.15s; }
+.send:hover:not(:disabled) { background: var(--ink-2); transform: translateY(-1px); }
+.send:disabled { background: var(--mist); color: #8695A4; cursor: not-allowed; }
+.pop { position: absolute; left: 14px; bottom: 74px; width: 310px; background: var(--white); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: 0 24px 50px -20px rgba(17, 27, 39, 0.4); z-index: 6; display: none; gap: 14px; }
+.pop[data-open="true"] { display: grid; }
+.pop h3 { font-family: var(--sans); font-size: 1rem; font-weight: 700; letter-spacing: 0; }
+.pop p { margin: -6px 0 0; font-size: 0.85rem; color: var(--muted); line-height: 1.45; }
+.pop label { font-size: 0.88rem; }
+.pop input, .pop select { font: inherit; font-weight: 400; width: 100%; background: var(--chalk); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; color: var(--ink); }
+.pop-row { display: flex; gap: 10px; justify-content: space-between; }
+.chat-bar { position: relative; z-index: 1; background: var(--mist); border-radius: 0 0 24px 24px; margin: -20px 22px 0; padding: 32px 18px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; font-size: 0.92rem; color: var(--muted); }
+.chat-bar .exs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ex { background: transparent; border: 0; font: inherit; font-weight: 600; color: var(--ink); cursor: pointer; padding: 6px 13px; border-radius: 999px; }
+.ex:hover { background: var(--white); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Result */
+.result { padding-top: clamp(48px, 6vw, 80px); padding-bottom: clamp(48px, 6vw, 80px); background: var(--white); border-block: 1px solid var(--line); scroll-margin-top: 70px; }
+.result[hidden] { display: none; }
+.result-top { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+.result-top h2 { font-size: clamp(1.8rem, 3.6vw, 2.6rem); line-height: 1.08; }
+.panel { background: var(--white); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 30px; color: #fff; background: var(--lv, var(--red)); }
+.panel-head b { font-family: var(--serif); font-size: 2rem; line-height: 1.1; display: block; }
+.panel-head span { font-size: 1rem; opacity: 0.95; }
+.panel-head .score { font-family: var(--serif); font-size: 3.6rem; font-weight: 700; line-height: 1; text-align: right; }
+.panel-head .score small { display: block; font-family: var(--sans); font-size: 0.8rem; font-weight: 500; opacity: 0.9; }
+.gauge { position: relative; height: 10px; margin: 0; background: linear-gradient(to right, #8FD0AB 0 30%, #F0C46A 30% 60%, #E88C84 60% 100%); }
+.gauge i { position: absolute; top: -5px; width: 4px; height: 20px; background: var(--ink); border-radius: 2px; transform: translateX(-2px); }
+.panel-body { padding: 28px 30px 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start; }
+.panel-body h3 { font-family: var(--sans); font-size: 1.05rem; font-weight: 700; letter-spacing: 0; margin-bottom: 12px; }
+.listing { font-family: var(--serif); font-size: 1.08rem; line-height: 1.75; background: var(--chalk); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; margin: 0; overflow-wrap: anywhere; }
+.listing mark { box-shadow: inset 0 -3px 0 var(--red); }
+.listing mark.m-medium { background: #FFE88A; box-shadow: inset 0 -3px 0 var(--amber); }
+.listing mark.m-low { background: var(--hl-soft); box-shadow: none; }
+.flags { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.flag { border: 1px solid var(--line); border-left: 6px solid var(--sev, var(--red)); border-radius: 6px; padding: 12px 16px; }
+.flag b { font-size: 1.02rem; }
+.flag em { display: inline-block; font-family: var(--serif); background: var(--hl-soft); padding: 0 6px; border-radius: 3px; margin: 4px 0; font-style: italic; overflow-wrap: anywhere; }
+.flag p { margin: 2px 0 0; color: var(--muted); font-size: 0.93rem; line-height: 1.5; }
+.chip { display: inline-block; font-size: 0.75rem; font-weight: 700; color: #fff; background: var(--sev, var(--red)); padding: 1px 9px; border-radius: 999px; margin-right: 8px; vertical-align: 2px; }
+.empty { margin: 0; color: var(--muted); }
+.advice { margin: 0; padding-left: 1.2rem; line-height: 1.6; }
+.advice li { margin-bottom: 8px; }
+.col-note { margin-top: 26px; }
+.fine { margin: 18px 0 0; font-size: 0.88rem; color: var(--muted); }
+.again { margin-top: 22px; }
+
+/* Open source */
+.band-dark { background: var(--ink); color: #fff; }
+.band-dark .sec-head p, .band-dark .pt p { color: #BAC7D3; }
+.band-dark mark { padding: 0 0.15em; }
+.oss-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; }
+.oss-grid .pt { grid-column: span 4; border-top: 1px solid #3A4A5D; padding-top: 20px; }
+.pt h3 { font-size: 1.35rem; margin-bottom: 8px; }
+.pt p { margin: 0; }
+.oss-cta { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 44px; }
+.band-dark .btn.ghost { color: #fff; border-color: #fff; }
+.band-dark .btn.ghost:hover { background: rgba(255, 255, 255, 0.12); }
+
+/* FAQ */
+.faq-wrap { display: grid; grid-template-columns: repeat(12, 1fr); gap: 32px; }
+.faq-wrap .lead { grid-column: 1 / span 4; }
+.faq-wrap .lead h2 { font-size: clamp(2rem, 4vw, 3rem); line-height: 1.06; }
+.faq-wrap .lead p { color: var(--muted); margin: 14px 0 0; }
+.faq { grid-column: 6 / span 7; border-bottom: 1px solid var(--line); }
+details { border-top: 1px solid var(--line); }
+summary { list-style: none; cursor: pointer; padding: 22px 48px 22px 0; font-family: var(--serif); font-size: 1.25rem; font-weight: 600; position: relative; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-family: var(--sans); font-size: 1.8rem; font-weight: 300; transition: transform 0.2s; }
+details[open] summary::after { transform: translateY(-50%) rotate(45deg); }
+details p { margin: 0 0 24px; color: var(--muted); max-width: 36em; }
+
+/* Contact */
+.contact { background: var(--white); border-top: 1px solid var(--line); }
+.contact-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 40px; align-items: start; }
+.contact-grid .lead { grid-column: 1 / span 5; }
+.contact-grid h2 { font-size: clamp(2rem, 4vw, 3rem); line-height: 1.06; }
+.contact-grid .lead p { color: var(--muted); margin: 16px 0 0; max-width: 28em; }
+form { grid-column: 7 / span 6; display: grid; gap: 18px; }
+label { display: grid; gap: 8px; font-weight: 600; font-size: 0.95rem; }
+select, textarea { font: inherit; font-weight: 400; color: var(--ink); background: var(--chalk); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; width: 100%; }
+textarea { min-height: 150px; resize: vertical; }
+.submit-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.submit-row small { color: var(--muted); font-size: 0.86rem; line-height: 1.45; max-width: 24em; }
+
+/* Footer */
+footer { background: var(--chalk); border-top: 1px solid var(--line); padding: 48px 0 56px; font-size: 0.92rem; color: var(--muted); }
+footer .wrap { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; }
+footer .col-a { grid-column: 1 / span 5; }
+footer .col-a p { margin: 12px 0 0; max-width: 32em; }
+footer .col-b { grid-column: 8 / span 5; display: flex; gap: 28px; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start; }
+footer .col-b a { font-weight: 600; color: var(--ink); text-underline-offset: 4px; }
+
+/* Responsive */
+@media (max-width: 960px) {
+  .nav ul { display: none; }
+  .hero-copy, .hero-visual, .chat-wrap { grid-column: 1 / -1; grid-row: auto; }
+  .panel-body { grid-template-columns: 1fr; }
+  .hero::before { width: 520px; height: 520px; right: -200px; top: 260px; }
+  .hero-visual { max-width: 520px; padding: 28px 18px 52px 22px; }
+  .hero-copy { order: 1; }
+  .chat-wrap { order: 2; }
+  .hero-visual { order: 3; }
+  .trust .wrap { grid-template-columns: repeat(2, 1fr); }
+  .trust .item { border-left: 0; border-top: 1px solid var(--line); padding-left: 0; }
+  .trust .item:nth-child(-n+2) { border-top: 0; }
+  .sec-head h2, .sec-head p { grid-column: 1 / -1; }
+  .card.big, .card.c3, .card.c5, .card.c7 { grid-column: span 12; grid-row: auto; }
+  .card.c3 { grid-column: span 6; }
+  .step, .oss-grid .pt { grid-column: span 12; }
+  .step:nth-child(2), .step:nth-child(3) { margin-top: 0; }
+  .contact-grid, .faq-wrap { grid-template-columns: 1fr; gap: 28px; }
+  .faq-wrap .lead, .faq { grid-column: 1 / -1; }
+  .contact-grid .lead, form { grid-column: 1 / -1; }
+  footer .col-a, footer .col-b { grid-column: 1 / -1; justify-content: flex-start; }
+  .bar { grid-template-columns: 110px 1fr 52px; }
+}
+@media (max-width: 620px) {
+  body { font-size: 16px; }
+  .wrap { width: min(var(--wrap), 100% - 32px); }
+  .card.c3 { grid-column: span 12; }
+  .verdict { left: -8px; padding: 12px 16px; }
+  .verdict .num { font-size: 2.3rem; }
+  .note { width: 160px; right: -2px; top: -30px; font-size: 0.8rem; }
+  .sheet h2 { padding-right: 96px; font-size: 1.1rem; }
+  .sheet { padding: 22px 20px 26px; }
+  .sheet p { font-size: 1rem; }
+  .panel-head, .panel-body { padding-inline: 18px; }
+  .panel-head .score { font-size: 2.4rem; }
+  .panel-head b { font-size: 1.6rem; }
+  .chat textarea { font-size: 1.1rem; padding: 20px 20px 6px; min-height: 130px; }
+  .pop { left: 8px; width: calc(100% - 16px); }
+  .mode { display: none; }
+  .trust .wrap { grid-template-columns: 1fr; }
+  .trust .item:nth-child(2) { border-top: 1px solid var(--line); }
+  .nav .btn.small { padding: 9px 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .sheet mark { animation: none; background-size: 100% 100%; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Nesty home"><mark>Nesty</mark></a>
+    <nav aria-label="Main">
+      <ul>
+        <li><a href="#catches">What we catch</a></li>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#open">Open source</a></li>
+        <li><a href="#faq">Questions</a></li>
+      </ul>
+    </nav>
+    <a class="btn small" href="#check">Check a listing</a>
+  </div>
+</header>
+
+<main id="main">
+  <div id="top"></div>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap">
+      <div class="hero-copy">
+        <h1 id="hero-title">Know if a room is a scam before you pay a penny.</h1>
+        <p class="sub">Paste a listing, get a verdict in 10 seconds. Nesty marks the warning signs scammers use on students, and tells you in plain English what to ask next.</p>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="sheet">
+          <h2>Double room near campus</h2>
+          <div class="meta">Posted today, 14 people viewing</div>
+          <p>Lovely double room, only <mark>£250 a month</mark>, bills included! <mark>I am currently abroad</mark> so my agent will post the keys to you. Please <mark>send £400 deposit to secure</mark> the room before viewing. <mark>Many people interested</mark> so reply today. <mark>WhatsApp me</mark>.</p>
+        </div>
+        <div class="note"><b>Landlord is abroad</b>Scammers say this so you can never meet them or see the home.</div>
+        <div class="verdict"><div class="num">100</div><div><b>High risk</b><span>6 warning signs found</span></div></div>
+      </div>
+
+      <div class="chat-wrap" id="check">
+        <form class="chat" id="chat" autocomplete="off">
+          <label class="sr" for="listing">Paste the listing or the landlord’s message</label>
+          <textarea id="listing" rows="4" placeholder="Paste the listing or the landlord’s message here. Add the rent and city with the plus button if you know them." aria-describedby="chat-note"></textarea>
+          <div class="chat-tools">
+            <div class="chat-left">
+              <button class="plus" type="button" id="plus" aria-label="Add rent and city" aria-expanded="false" aria-controls="pop">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3v14M3 10h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </button>
+              <span class="detail-chip" id="detail-chip" hidden></span>
+            </div>
+            <div class="chat-right">
+              <span class="mode"><i></i>Instant rule check</span>
+              <button class="send" type="submit" id="send" aria-label="Check this listing" disabled>
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true"><path d="M11 18V4M5 10l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="pop" id="pop" role="group" aria-label="Rent and city" data-open="false">
+            <h3>Add details (optional)</h3>
+            <p>With a rent and a city, Nesty can tell if the price is far too low.</p>
+            <label>Monthly rent in £<input id="price" type="number" min="0" step="10" inputmode="numeric" placeholder="e.g. 450"></label>
+            <label>City<select id="city"><option value="">Not sure</option><option value="birmingham">Birmingham</option><option value="brighton">Brighton</option><option value="bristol">Bristol</option><option value="cambridge">Cambridge</option><option value="cardiff">Cardiff</option><option value="coventry">Coventry</option><option value="edinburgh">Edinburgh</option><option value="exeter">Exeter</option><option value="glasgow">Glasgow</option><option value="guildford">Guildford</option><option value="leeds">Leeds</option><option value="liverpool">Liverpool</option><option value="london">London</option><option value="manchester">Manchester</option><option value="newcastle">Newcastle</option><option value="nottingham">Nottingham</option><option value="oxford">Oxford</option><option value="portsmouth">Portsmouth</option><option value="sheffield">Sheffield</option><option value="southampton">Southampton</option></select></label>
+            <div class="pop-row"><button class="btn ghost small" type="button" id="pop-clear">Clear</button><button class="btn small" type="button" id="pop-done">Done</button></div>
+          </div>
+        </form>
+        <div class="chat-bar">
+          <div class="exs"><span>Try an example</span><button class="ex" type="button" data-ex="obvious">Obvious scam</button><button class="ex" type="button" data-ex="subtle">Subtle scam</button><button class="ex" type="button" data-ex="legit">Genuine listing</button></div>
+          <span id="chat-note">Runs in your browser. Nothing is saved.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="result" class="result" hidden aria-labelledby="result-title" tabindex="-1">
+    <div class="wrap">
+      <div class="result-top"><h2 id="result-title">Here is what we found.</h2></div>
+      <div class="panel" aria-live="polite">
+        <div class="panel-head" id="r-head"></div>
+        <div class="gauge" id="r-gauge" aria-hidden="true"><i></i></div>
+        <div class="panel-body">
+          <div>
+            <h3>Your listing, with the warning signs marked</h3>
+            <p class="listing" id="r-listing"></p>
+            <div class="col-note"><h3>What to do next</h3><ul class="advice" id="r-advice"></ul></div>
+          </div>
+          <div>
+            <h3>What we found</h3>
+            <ul class="flags" id="r-flags"></ul>
+            <p class="fine">Nesty shows signs often seen in rental scams. It can be wrong, and it is not proof about any person. This page runs the rule checks. The full app also asks Gemma 4 to read for subtler signs.</p>
+          </div>
+        </div>
+      </div>
+      <div class="again"><button class="btn ghost" type="button" id="again">Check another listing</button></div>
+    </div>
+  </section>
+
+  <div class="trust">
+    <div class="wrap">
+      <div class="item"><b>Open source</b>MIT license, every rule is readable</div>
+      <div class="item"><b>Built on Gemma 4</b>An open weight AI model</div>
+      <div class="item"><b>Nothing saved</b>What you paste stays with you</div>
+      <div class="item"><b>Seven scam patterns</b>Each flag quotes your listing</div>
+      <div class="item"><b>20 UK cities</b>Rent compared with local averages</div>
+    </div>
+  </div>
+
+  <section id="catches" aria-labelledby="catches-title">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 id="catches-title">The tricks we look for, in your own listing.</h2>
+        <p>Nesty highlights the exact words that worry us, then explains why in plain English.</p>
+      </div>
+      <div class="bento">
+        <article class="card big">
+          <h3>Paying before you’ve seen the room</h3>
+          <p>Real landlords let you view first. A request for a deposit before a viewing is the biggest warning sign there is.</p>
+          <div class="quote"><mark>send £400 to secure the room before viewing</mark></div>
+        </article>
+        <article class="card c3">
+          <h3>A landlord who is always abroad</h3>
+          <p>So you can never meet them or watch the keys change hands.</p>
+          <div class="quote"><mark>I am currently abroad</mark></div>
+        </article>
+        <article class="card c3">
+          <h3>Payment you can’t get back</h3>
+          <p>Gift cards, crypto and transfer apps are almost impossible to recover.</p>
+          <div class="quote"><mark>pay by bitcoin</mark></div>
+        </article>
+        <article class="card c3">
+          <h3>Chat moved off the site</h3>
+          <p>Off the platform there is no record and no protection.</p>
+          <div class="quote"><mark>WhatsApp me</mark></div>
+        </article>
+        <article class="card c3">
+          <h3>Pressure to decide today</h3>
+          <p>Rushing you is how scammers stop you from checking.</p>
+          <div class="quote"><mark>many people interested</mark></div>
+        </article>
+        <article class="card c5">
+          <h3>No contract, no checks</h3>
+          <p>A real tenancy comes with a written agreement and a protected deposit.</p>
+          <div class="quote"><mark>no need for a contract</mark></div>
+        </article>
+        <article class="card c7">
+          <h3>Rent far below the local average</h3>
+          <p>If a room costs under 60% of what similar rooms cost in that city, Nesty flags it as possible bait.</p>
+          <div class="bars" role="img" aria-label="Example: a listing at 250 pounds against a Manchester average of 685 pounds">
+            <div class="bar"><span>Manchester average</span><i style="width:100%"></i><b>£685</b></div>
+            <div class="bar"><span>This listing</span><i class="low" style="width:36.5%"></i><b>£250</b></div>
+            <small>Average room rent in Manchester, SpareRoom Rental Index, Q3 2026.</small>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" class="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 id="how-title">Three steps, about ten seconds.</h2>
+        <p>No account, no upload, no waiting for a reply from a stranger.</p>
+      </div>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><h3>Paste</h3><p>Paste the listing and any messages from the landlord. Add the rent and city if you know them.</p></div>
+        <div class="step"><span class="n">2</span><h3>Nesty checks</h3><p>Clear rules look for known scam patterns. Gemma 4, an open weight AI model, reads for the subtler signs.</p></div>
+        <div class="step"><span class="n">3</span><h3>You decide</h3><p>You get a risk level, the exact words that worry us, and what to ask or do next.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="open" class="band-dark" aria-labelledby="open-title">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 id="open-title">Open source, so you can check our checking.</h2>
+        <p>Every rule, every score and this page are in a public repository. Read them, change them, make them better.</p>
+      </div>
+      <div class="oss-grid">
+        <div class="pt"><h3>Rules you can read</h3><p>Every flag quotes the exact words from the listing, so you can see why it appeared.</p></div>
+        <div class="pt"><h3>Open weight AI</h3><p>Gemma 4 handles the subtler signs, under its own license terms. If the AI is off, the rules still work.</p></div>
+        <div class="pt"><h3>MIT licensed</h3><p>Copy it, change it, and build on it. Add more scam patterns and more cities.</p></div>
+      </div>
+      <div class="oss-cta">
+        <a class="btn hl" href="https://github.com/ryprojects1/Nesty" target="_blank" rel="noopener">View the code on GitHub</a>
+        <a class="btn ghost" href="https://github.com/ryprojects1/Nesty#readme" target="_blank" rel="noopener">Read the README</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" aria-labelledby="faq-title">
+    <div class="wrap faq-wrap">
+      <div class="lead">
+        <h2 id="faq-title">Questions, answered plainly.</h2>
+        <p>Nothing here replaces your own judgement. It is a second pair of eyes.</p>
+      </div>
+      <div class="faq">
+        <details><summary>Is Nesty free?</summary><p>Yes. It is free to use, there is no sign up, and the code is open source under the MIT license.</p></details>
+        <details><summary>Does Nesty save my listing or messages?</summary><p>No. On this page the check runs in your browser and nothing is sent anywhere. If you run the full app with a hosted AI, that text goes to the AI provider, so check the README for how your copy is set up.</p></details>
+        <details><summary>Can Nesty prove someone is a scammer?</summary><p>No, and it never says so. It shows signs often seen in rental scams and quotes the words behind each one. It can be wrong, so use it to decide what to ask next.</p></details>
+        <details><summary>What does the AI do, and what if it is switched off?</summary><p>In the full app, Gemma 4 reads for subtler signs such as pressure, an odd story, or template wording. This page runs the rule checks only. If the AI is not available, the full app still runs every rule check and tells you so.</p></details>
+        <details><summary>Where does the rent comparison come from?</summary><p>From SpareRoom’s Rental Index for Q3 2026, covering about 20 UK student cities. Nesty flags rent below 60% of the city average.</p></details>
+        <details><summary>Does it work outside the UK?</summary><p>Not yet. The rent data and the advice are written for renting in the UK. More countries are a good first contribution.</p></details>
+        <details><summary>What should I do if I think I have been targeted?</summary><p>Stop paying, keep every message, and report it to Action Fraud and to the site where you found the listing. Tell your university accommodation team too.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="contact" aria-labelledby="contact-title">
+    <div class="wrap contact-grid">
+      <div class="lead">
+        <h2 id="contact-title">Seen a scam we missed? Tell us.</h2>
+        <p>Nesty only knows the scams we have seen so far. Help it learn the next one, report a bug, or suggest an idea.</p>
+      </div>
+      <form id="feedback" novalidate>
+        <label>What is this about?
+          <select id="f-type">
+            <option>A scam pattern Nesty missed</option>
+            <option>A wrong result</option>
+            <option>A bug</option>
+            <option>An idea or another city</option>
+          </select>
+        </label>
+        <label>Tell us what happened
+          <textarea id="f-msg" placeholder="For example: the landlord asked me to pay through a link before I could view. Please remove any names and personal details."></textarea>
+        </label>
+        <div class="submit-row">
+          <button class="btn" type="submit">Send feedback</button>
+          <small>This opens a pre-filled GitHub issue. You need a free GitHub account, and we never see your email.</small>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="col-a">
+      <a class="logo" href="#top"><mark>Nesty</mark></a>
+      <p>Nesty shows signs often seen in rental scams. It can be wrong, and it is not proof about any person. Never pay before you have viewed the home and read the tenancy agreement.</p>
+    </div>
+    <div class="col-b">
+      <a href="https://github.com/ryprojects1/Nesty" target="_blank" rel="noopener">GitHub</a>
+      <a href="#faq">Questions</a>
+      <span>MIT license. Built at a Hacktoberfest Hack Day.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const REPO = "https://github.com/ryprojects1/Nesty";
+const RULES = [
+ {
+  "id": "pay_before_viewing",
+  "title": "Pay before viewing",
+  "severity": "high",
+  "reason": "Real landlords let you view the home before taking money.",
+  "patterns": [
+   "\\b(?:send|pay|paying|transfer|deposit|wire)\\b[^.!?\\n]{0,50}?\\b(?:to|and i will|so (?:i|we) can|and we will)\\s+(?:secure|reserve|hold|book)\\b",
+   "\\b(?:deposit|payment|fee|money)\\b[^.!?\\n]{0,30}?\\b(?:to|will|and)\\s+(?:secure|reserve|hold|book)\\b",
+   "\\b(?:pay|paid|payment|deposit|send|transfer|fee)\\b[^.!?\\n]{0,50}?\\b(?:before|prior to|without)\\s+(?:a\\s+|any\\s+|the\\s+|you\\s+)?(?:view|viewing|viewings|visit|seeing|see)\\b",
+   "\\b(?:send|transfer|pay|paid)\\b[^.!?\\n]{0,25}?\\bholding (?:fee|deposit)\\b[^.!?\\n]{0,40}?\\b(?:now|today|immediately|asap|first|upfront|before|to (?:secure|reserve|hold))\\b",
+   "\\bholding (?:fee|deposit)\\b[^.!?\\n]{0,40}?\\b(?:now|today|immediately|asap|upfront|before (?:a |any |the )?(?:view|viewing|seeing))\\b",
+   "\\bno viewings?\\b(?!\\s+(?:fees?|charges?|costs?))",
+   "\\bviewings? (?:is |are )?(?:not possible|unavailable|impossible|not available)\\b",
+   "\\b(?:can'?t|cannot|unable to|not able to) (?:arrange|offer|do|allow) (?:a |any )?viewings?\\b"
+  ]
+ },
+ {
+  "id": "landlord_abroad",
+  "title": "Landlord is abroad",
+  "severity": "high",
+  "reason": "Scammers often say they are abroad so you can never meet them or see the home.",
+  "patterns": [
+   "\\b(?:i am|i'm|im|currently|now|owner is|landlord is|we are|we're|i live|i work)\\b[^.!?\\n]{0,25}?\\b(?:abroad|overseas|out of (?:the )?(?:country|uk|town)|not in the uk|working away|away for work|away on work)\\b",
+   "\\bworking (?:abroad|overseas|away)\\b",
+   "\\bliving (?:abroad|overseas)\\b",
+   "\\bkeys?\\b[^.!?\\n]{0,40}?\\b(?:posted|post|sent|mailed|couriered|shipped|delivered by (?:post|courier))\\b",
+   "\\b(?:post|send|mail|courier|ship)\\b[^.!?\\n]{0,25}?\\bkeys?\\b"
+  ]
+ },
+ {
+  "id": "odd_payment",
+  "title": "Unusual payment method",
+  "severity": "high",
+  "reason": "Gift cards, crypto and money transfer apps are almost impossible to get back. Real landlords take a normal UK bank transfer.",
+  "patterns": [
+   "\\bwestern union\\b",
+   "\\bmoney ?gram\\b",
+   "\\bbitcoin\\b",
+   "\\bcrypto\\w*\\b",
+   "\\busdt\\b",
+   "\\b(?:gift|itunes|google play|amazon|steam) ?cards?\\b",
+   "\\bpaypal friends\\b",
+   "\\bfriends (?:and|&) family\\b",
+   "\\b(?:zelle|cash ?app)\\b",
+   "\\bcash (?:in|by) (?:the )?post\\b"
+  ]
+ },
+ {
+  "id": "off_platform",
+  "title": "Chat moved off the platform",
+  "severity": "medium",
+  "reason": "Moving the chat away from the listing site removes its protection and records.",
+  "patterns": [
+   "\\b(?:whatsapp|telegram|wechat|signal)\\s+(?:me|us)\\b",
+   "\\b(?:contact|message|text|email|e-mail|reach|dm)\\s+(?:me|us)\\s+(?:directly|privately|outside|off|on\\s+(?:whatsapp|telegram|wechat|signal)|via\\s+(?:whatsapp|telegram|wechat|signal))",
+   "\\b(?:don'?t|do not|no need to|avoid)\\s+(?:use|using|go through|message on)\\s+(?:the\\s+)?(?:site|platform|app|website|spareroom|gumtree|marketplace|facebook)\\b",
+   "\\b(?:whatsapp|telegram|wechat)\\b[^.!?\\n]{0,20}?\\bonly\\b",
+   "\\bonly\\s+(?:on\\s+)?(?:whatsapp|telegram|wechat)\\b"
+  ]
+ },
+ {
+  "id": "urgency",
+  "title": "Pressure to act fast",
+  "severity": "medium",
+  "reason": "Scammers rush you so you do not stop to check things.",
+  "patterns": [
+   "\\b(?:many|several|lots of|loads of|a lot of|plenty of|multiple)\\s+(?:other\\s+)?(?:people|students|applicants|viewers|enquiries|inquiries|tenants)\\b[^.!?\\n]{0,30}?\\b(?:interested|waiting|viewing|enquir\\w+|inquir\\w+|asking)\\b",
+   "\\b(?:today only|only today|offer ends|ends (?:today|tonight|soon)|first (?:come|to pay|to send|to reserve)|first served|won'?t last|will (?:be )?gone|going fast|last (?:room|chance|one)|hurry|act (?:fast|now|quickly))\\b",
+   "\\b(?:reply|respond|decide|pay|send)\\s+(?:today|now|immediately|asap|within \\d+ hours?)\\b"
+  ]
+ },
+ {
+  "id": "no_contract",
+  "title": "No contract or checks",
+  "severity": "medium",
+  "reason": "A real tenancy comes with a written agreement, and your deposit must be protected.",
+  "patterns": [
+   "\\b(?:no|without|skip(?:ping)?|don'?t need|do not need|no need for)\\s+(?:a\\s+|any\\s+|the\\s+)?(?:contract|tenancy agreement|agreement|paperwork|references?|credit checks?|checks?|id|identification|deposit protection)\\b",
+   "\\b(?:contract|agreement|paperwork)\\s+(?:later|after (?:you )?(?:arrive|move in|payment|paying))\\b",
+   "\\b(?:won'?t|will not|refuse[sd]?(?: to)?|can'?t|cannot)\\s+(?:show|provide|send|share|give)\\s+(?:my\\s+|any\\s+)?(?:id|identification|passport|proof)\\b",
+   "\\brefuse[sd]?\\s+(?:to\\s+)?(?:\\w+\\s+){0,2}?(?:id|identification)\\b"
+  ]
+ }
+];
+const RENT = {
+ "london": 1002,
+ "guildford": 750,
+ "manchester": 685,
+ "bristol": 746,
+ "birmingham": 614,
+ "leeds": 578,
+ "edinburgh": 894,
+ "nottingham": 588,
+ "sheffield": 533,
+ "glasgow": 692,
+ "oxford": 834,
+ "cambridge": 792,
+ "brighton": 762,
+ "exeter": 681,
+ "cardiff": 650,
+ "newcastle": 604,
+ "liverpool": 554,
+ "coventry": 571,
+ "southampton": 662,
+ "portsmouth": 664
+};
+const ESTIMATED = { guildford: true };
+const EXAMPLES = {
+ "obvious": {
+  "label": "Obvious scam",
+  "text": "Lovely double room near campus, only £250 a month, bills included! I am currently abroad so my agent will post the keys to you. Please send £400 deposit to secure the room before viewing. Many people interested so reply today. WhatsApp me. Pay by bitcoin.",
+  "price": 250,
+  "city": "manchester"
+ },
+ "subtle": {
+  "label": "Subtle scam",
+  "text": "Thanks for your interest in the room. I work offshore so I'm out of the country most of the year, but a friend can hand over the keys. Please transfer a holding fee of £200 now to take it off the market, as several students are interested. Message me directly and don't use the site, the fees are higher there. No need for a contract, we can sort paperwork later.",
+  "price": null,
+  "city": ""
+ },
+ "legit": {
+  "label": "Genuine listing",
+  "text": "Double room in a friendly four person student house, 10 minutes’ walk from campus. £680 per month including bills and wifi. Viewings available this weekend, arranged through our office on the High Street. Holding deposit equal to one week’s rent once you have viewed and been accepted. Deposit protected in the DPS. Tenancy agreement provided before you pay. Pay by bank transfer to the agency account.",
+  "price": 680,
+  "city": "manchester"
+ }
+};
+
+const WEIGHTS = { high: 35, medium: 20, low: 10 };
+const ORDER = { high: 0, medium: 1, low: 2 };
+const LEVELS = {
+  red: { label: "High risk", color: "#B3261E", line: "This listing matches several patterns often seen in rental scams. Do not pay anything yet." },
+  amber: { label: "Medium risk", color: "#9A5B00", line: "There are some warning signs. Check the details before you send any money." },
+  green: { label: "No obvious red flags", color: "#1F7A4D", line: "We found no obvious red flags. Still view the home and read the tenancy agreement before you pay." }
+};
+const SEV = { high: "#B3261E", medium: "#9A5B00", low: "#5B6B7C" };
+const ADVICE_BY_ID = {
+  pay_before_viewing: "Do not send any money until you have seen the home in person or on a live video call.",
+  landlord_abroad: "Ask for someone local to show you the home. If nobody can, walk away.",
+  odd_payment: "Only pay by UK bank transfer to an account in the landlord\u2019s or agent\u2019s name. Never use gift cards, crypto or money transfer apps.",
+  off_platform: "Keep talking through the listing site or the agent\u2019s official email, so there is a record.",
+  urgency: "Take your time. Ask them to hold the room for 48 hours while you check the details.",
+  no_contract: "Ask to read the tenancy agreement first, and ask which scheme will protect your deposit.",
+  price_too_low: "Compare the price with similar rooms nearby. If it is far cheaper, ask why."
+};
+const ALWAYS_IF_RISKY = [
+  "Check the person is real: ask for the full address and look up the property and its owner (for example on the Land Registry).",
+  "If you think you have been targeted, report it to Action Fraud and to the site where you found the listing."
+];
+const GREEN_LINE = "No obvious red flags found, but still view the home and read the tenancy agreement before you pay anything.";
+const MAX_ADVICE = 6;
+const COMPILED = RULES.map((r) => Object.assign({}, r, { res: r.patterns.map((p) => new RegExp(p, "i")) }));
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const normalise = (t) => t.replace(/[\u2019\u2018\u02bc\u00b4\u0060]/g, "'").replace(/[\u00a0\u2009\u202f]/g, " ");
+const titleCase = (s) => s.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+
+function priceQuote(text, price) {
+  const n = Math.round(price);
+  const forms = [n.toLocaleString("en-GB"), String(n)].join("|");
+  const m = new RegExp("\u00a3\\s?(?:" + forms + ")(?:\\.\\d{2})?(?:\\s?(?:pcm|pm|per month|a month|/month|/ month))?", "i").exec(text);
+  return m ? m[0].trim() : "";
+}
+
+function checkRules(text, price, cityKey) {
+  const norm = normalise(text);
+  const flags = [];
+  COMPILED.forEach((rule) => {
+    let best = null;
+    rule.res.forEach((re) => {
+      const m = re.exec(norm);
+      if (m && (best === null || m.index < best.index)) best = m;
+    });
+    if (best) flags.push({ id: rule.id, title: rule.title, severity: rule.severity, reason: rule.reason, quote: text.slice(best.index, best.index + best[0].length).trim() });
+  });
+  const avg = cityKey ? RENT[cityKey] : null;
+  if (price > 0 && avg && price < 0.6 * avg) {
+    flags.push({
+      id: "price_too_low", title: "Price far below average", severity: "high", quote: priceQuote(text, price),
+      reason: "\u00a3" + Math.trunc(price).toLocaleString("en-GB") + " a month is far below the typical \u00a3" + avg.toLocaleString("en-GB") +
+        (ESTIMATED[cityKey] ? " (our estimate)" : "") + " for a room in " + titleCase(cityKey) + ". Very cheap prices are often bait to make you reply fast."
+    });
+  }
+  return flags;
+}
+
+function buildAdvice(flags, level) {
+  const closing = level === "green" ? [GREEN_LINE] : ALWAYS_IF_RISKY.slice();
+  const seen = new Set(closing.map((c) => c.toLowerCase()));
+  const specific = [];
+  flags.forEach((f) => {
+    const line = ADVICE_BY_ID[f.id];
+    if (line && !seen.has(line.toLowerCase())) { seen.add(line.toLowerCase()); specific.push(line); }
+  });
+  return specific.slice(0, Math.max(0, MAX_ADVICE - closing.length)).concat(closing);
+}
+
+function analyse(text, price, cityKey) {
+  text = (text || "").trim();
+  if (!text) return null;
+  const flags = checkRules(text, price, cityKey);
+  flags.sort((a, b) => ORDER[a.severity] - ORDER[b.severity]);
+  const ids = new Set(flags.map((f) => f.id));
+  let score = Math.min(100, flags.reduce((t, f) => t + WEIGHTS[f.severity], 0));
+  if (ids.has("pay_before_viewing") && ids.has("landlord_abroad")) score = Math.max(score, 80);
+  const level = score >= 60 ? "red" : score >= 30 ? "amber" : "green";
+  return { score, level, flags, advice: buildAdvice(flags, level) };
+}
+window.nestyAnalyse = analyse;
+
+function highlight(text, flags) {
+  const spans = [];
+  flags.forEach((f) => {
+    if (!f.quote) return;
+    const i = text.toLowerCase().indexOf(f.quote.toLowerCase());
+    if (i >= 0) spans.push([i, i + f.quote.length, f.severity]);
+  });
+  spans.sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  spans.forEach((s) => {
+    const last = merged[merged.length - 1];
+    if (last && s[0] < last[1]) { last[1] = Math.max(last[1], s[1]); if (s[2] === "high") last[2] = "high"; } else merged.push(s.slice());
+  });
+  let out = "", pos = 0;
+  merged.forEach(([a, b, sev]) => { out += esc(text.slice(pos, a)) + '<mark class="m-' + sev + '">' + esc(text.slice(a, b)) + "</mark>"; pos = b; });
+  return (out + esc(text.slice(pos))).replace(/\r/g, "").replace(/\n/g, "<br>");
+}
+
+/* Page controls */
+const $ = (id) => document.getElementById(id);
+const box = $("listing"), send = $("send"), plus = $("plus"), pop = $("pop");
+const priceEl = $("price"), cityEl = $("city"), chip = $("detail-chip");
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function fit() { box.style.height = "auto"; box.style.height = Math.min(Math.max(box.scrollHeight, 150), 380) + "px"; }
+function refresh() { send.disabled = box.value.trim() === ""; fit(); }
+function details() {
+  const p = parseFloat(priceEl.value); const c = cityEl.value;
+  const parts = [];
+  if (p > 0) parts.push("\u00a3" + Math.trunc(p).toLocaleString("en-GB") + " a month");
+  if (c) parts.push("in " + titleCase(c));
+  chip.hidden = parts.length === 0; chip.textContent = parts.join(" ");
+}
+function openPop(open) { pop.dataset.open = open ? "true" : "false"; plus.setAttribute("aria-expanded", open ? "true" : "false"); if (open) priceEl.focus(); }
+
+box.addEventListener("input", refresh);
+box.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!send.disabled) run(); }
+});
+plus.addEventListener("click", () => openPop(pop.dataset.open !== "true"));
+$("pop-done").addEventListener("click", () => { details(); openPop(false); plus.focus(); });
+$("pop-clear").addEventListener("click", () => { priceEl.value = ""; cityEl.value = ""; details(); });
+priceEl.addEventListener("input", details); cityEl.addEventListener("change", details);
+priceEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); details(); openPop(false); plus.focus(); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && pop.dataset.open === "true") { openPop(false); plus.focus(); } });
+document.addEventListener("click", (e) => { if (pop.dataset.open === "true" && !pop.contains(e.target) && !plus.contains(e.target)) openPop(false); });
+$("chat").addEventListener("submit", (e) => { e.preventDefault(); if (!send.disabled) run(); });
+
+document.querySelectorAll(".ex").forEach((b) => b.addEventListener("click", () => {
+  const ex = EXAMPLES[b.dataset.ex];
+  box.value = ex.text; priceEl.value = ex.price == null ? "" : ex.price; cityEl.value = ex.city || "";
+  details(); refresh(); run();
+}));
+
+function run() {
+  const price = parseFloat(priceEl.value) || 0;
+  const text = box.value;
+  const res = analyse(text, price, cityEl.value);
+  if (!res) return;
+  const lv = LEVELS[res.level];
+  const head = $("r-head");
+  head.style.setProperty("--lv", lv.color);
+  head.innerHTML = "<div><b>" + lv.label + "</b><span>" + esc(lv.line) + '</span></div><div class="score">' + res.score + "<small>out of 100</small></div>";
+  $("r-gauge").firstElementChild.style.left = res.score + "%";
+  $("r-listing").innerHTML = highlight(text.trim(), res.flags);
+  $("r-flags").innerHTML = res.flags.length ? res.flags.map((f) =>
+    '<li class="flag" style="--sev:' + SEV[f.severity] + '"><span class="chip">' + (f.severity[0].toUpperCase() + f.severity.slice(1)) + "</span><b>" + esc(f.title) + "</b>" +
+    (f.quote ? "<br><em>\u201c" + esc(f.quote) + "\u201d</em>" : "") + "<p>" + esc(f.reason) + "</p></li>").join("")
+    : '<li class="empty">No warning signs found in the text you pasted.</li>';
+  $("r-advice").innerHTML = res.advice.map((a) => "<li>" + esc(a) + "</li>").join("");
+  const sec = $("result");
+  sec.hidden = false;
+  sec.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  sec.focus({ preventScroll: true });
+}
+$("again").addEventListener("click", () => {
+  box.value = ""; priceEl.value = ""; cityEl.value = ""; details(); refresh();
+  $("result").hidden = true;
+  $("check").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+  box.focus({ preventScroll: true });
+});
+refresh();
+
+document.getElementById("feedback").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const type = document.getElementById("f-type").value;
+  const msg = document.getElementById("f-msg").value.trim();
+  if (!msg) { document.getElementById("f-msg").focus(); return; }
+  const url = REPO + "/issues/new?title=" + encodeURIComponent("Feedback: " + type) + "&body=" + encodeURIComponent(msg + "\n\n(Sent from the Nesty website)");
+  window.open(url, "_blank", "noopener");
+});
+</script>
+</body>
+</html>
