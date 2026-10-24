@@ -98,12 +98,21 @@ def _level(score):
 
 
 def _build_advice(flags, ai_advice, level):
-    advice = []
+    """Specific advice first, then the closing lines. The closing lines always keep their
+    place, so a very risky listing still tells the student to check the person and report it."""
+    if level == "green":
+        closing = ["No obvious red flags found, but still view the home and read the tenancy agreement before you pay anything."]
+    else:
+        closing = list(ALWAYS_IF_RISKY)
+
+    seen = {c.lower() for c in closing}
+    specific = []
 
     def add(line):
         line = str(line).strip()
-        if line and line.lower() not in (a.lower() for a in advice):
-            advice.append(line)
+        if line and line.lower() not in seen:
+            seen.add(line.lower())
+            specific.append(line)
 
     for f in flags:
         if f["id"] in ADVICE_BY_ID:
@@ -111,12 +120,8 @@ def _build_advice(flags, ai_advice, level):
     for line in ai_advice:
         if isinstance(line, str):
             add(line)
-    if level == "green":
-        add("No obvious red flags found, but still view the home and read the tenancy agreement before you pay anything.")
-    else:
-        for line in ALWAYS_IF_RISKY:
-            add(line)
-    return advice[:MAX_ADVICE]
+    room = max(0, MAX_ADVICE - len(closing))
+    return specific[:room] + closing
 
 
 def analyse(text, price=None, city=None):
