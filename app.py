@@ -1,4 +1,4 @@
-"""Red Flat: the Streamlit front end. Owner: B1.
+"""Nesty: the Streamlit front end. Owner: B1.
 
 Paste a listing, get a verdict in 10 seconds.
 Calls analyse(text, price, city) from the shared contract. Never crashes: if the engine
@@ -16,11 +16,13 @@ from pathlib import Path
 import streamlit as st
 
 HERE = Path(__file__).parent
+APP_NAME = "Nesty"
 AI_NAME = "Gemma 4"                      # shown in the UI so judges can see the AI at work
+REPO_URL = "https://github.com/ryprojects1/Nesty"
 USE_MOCK = os.getenv("REDFLAT_USE_MOCK", "0") == "1"
 NOT_SURE = "Not sure"
 
-st.set_page_config(page_title="Red Flat", page_icon="🚩", layout="wide")
+st.set_page_config(page_title="Nesty: check a rental listing", page_icon="🏠", layout="wide")
 
 # ---------------------------------------------------------------------------
 # Engine and data (both optional, so the page always loads)
@@ -69,17 +71,66 @@ PREVIEW_FLAGS = [
     {"quote": "Many people interested", "severity": "medium"},
 ]
 
+CHECKS = [
+    "Paying before a viewing",
+    "Landlord says they are abroad",
+    "Gift cards, crypto or transfer apps",
+    "Chat moved to WhatsApp or Telegram",
+    "Pressure to decide today",
+    "No contract or no checks",
+    "Rent far below the local average",
+]
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
 CSS = """
 <style>
-.block-container {padding-top: 2.2rem; max-width: 1180px;}
+.block-container {padding-top: 1.4rem; padding-bottom: 3rem; max-width: 1120px;}
+[data-testid="stToolbar"], [data-testid="stDecoration"], #MainMenu, footer {display: none !important;}
 header[data-testid="stHeader"] {background: transparent;}
-.rf-title {font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 800;
-  font-size: 2.5rem; letter-spacing: -0.02em; line-height: 1.1; margin: 0; color: #14202E;}
-.rf-title mark {background: #FFE45C; color: #14202E; padding: 0 0.18em; border-radius: 3px;}
-.rf-tagline {font-size: 1.15rem; color: #3A4A5C; margin: 0.35rem 0 1.6rem 0;}
+[data-testid="stBaseButton-primary"], button[kind="primary"] {background: #14202E; border-color: #14202E; color: #fff;}
+[data-testid="stBaseButton-primary"]:hover, button[kind="primary"]:hover {background: #24364A; border-color: #24364A; color: #fff;}
+
+.nz-top {display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+  margin: 0 0 1rem 0;}
+.nz-word {font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-size: 1.7rem;
+  letter-spacing: -0.02em; color: #14202E;}
+.nz-word mark {background: #FFE45C; color: #14202E; padding: 0 0.22em; border-radius: 4px;}
+.nz-links {display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; font-size: 0.9rem;}
+.nz-links a, .nz-pill {color: #14202E; text-decoration: none; border: 1px solid #B9C3CF; border-radius: 99px;
+  padding: 0.2rem 0.8rem; background: #fff;}
+.nz-links a:hover {border-color: #14202E;}
+
+.nz-hero {background: #14202E; color: #fff; border-radius: 14px; padding: 2.4rem 2.2rem; margin: 0 0 1.8rem 0;}
+.nz-h1 {font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: clamp(1.9rem, 4vw, 2.7rem);
+  line-height: 1.12; letter-spacing: -0.01em; color: #fff; max-width: 36rem; margin: 0;}
+.nz-sub {font-size: 1.15rem; line-height: 1.5; color: #D6DEE8; max-width: 38rem; margin: 0.9rem 0 0 0;}
+.nz-trust {display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.3rem 0 0 0;}
+.nz-trust span {font-size: 0.85rem; color: #E6ECF3; border: 1px solid #3B4B5F; border-radius: 99px;
+  padding: 0.2rem 0.8rem;}
+.nz-fact {font-size: 0.88rem; line-height: 1.5; color: #AEBBCA; margin: 1.3rem 0 0 0; max-width: 40rem;}
+
+.nz-h2 {font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-size: 1.5rem;
+  letter-spacing: -0.01em; color: #14202E; margin: 2.6rem 0 0.9rem 0;}
+.nz-steps {display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;}
+.nz-step {background: #fff; border: 1px solid #D5DBE3; border-radius: 10px; padding: 1.1rem 1.2rem; color: #1B2733;}
+.nz-num {display: inline-flex; width: 1.7rem; height: 1.7rem; align-items: center; justify-content: center;
+  border-radius: 50%; background: #14202E; color: #fff; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.6rem;}
+.nz-step b {display: block; font-size: 1.05rem; color: #14202E; margin-bottom: 0.25rem;}
+.nz-step p {margin: 0; line-height: 1.5; color: #2B3A4A; font-size: 0.95rem;}
+.nz-chips {display: flex; flex-wrap: wrap; gap: 0.55rem;}
+.nz-chip {background: #fff; border: 1px solid #D5DBE3; border-left: 4px solid #B3261E; border-radius: 6px;
+  padding: 0.4rem 0.8rem; font-size: 0.92rem; color: #1B2733;}
+.nz-oss {background: #fff; border: 1px solid #D5DBE3; border-radius: 12px; padding: 1.4rem 1.5rem; color: #1B2733;
+  display: flex; gap: 1.5rem; align-items: center; justify-content: space-between; flex-wrap: wrap;}
+.nz-oss p {margin: 0; line-height: 1.55; max-width: 42rem; color: #2B3A4A;}
+.nz-oss b {color: #14202E;}
+.nz-btn {display: inline-block; background: #14202E; color: #fff !important; text-decoration: none;
+  padding: 0.65rem 1.2rem; border-radius: 8px; font-weight: 600; white-space: nowrap;}
+.nz-foot {margin-top: 2.6rem; padding-top: 1rem; border-top: 1px solid #D5DBE3; font-size: 0.85rem;
+  line-height: 1.6; color: #4A5B6D;}
+
 .rf-help {font-size: 0.9rem; color: #4A5B6D; margin: 0.15rem 0 0.9rem 0;}
 .rf-small {font-size: 0.85rem; color: #4A5B6D; line-height: 1.5;}
 
@@ -111,7 +162,7 @@ header[data-testid="stHeader"] {background: transparent;}
 .rf-listing mark.m-high {background: #FFD43B; box-shadow: inset 0 -3px 0 #B3261E;}
 .rf-listing mark.m-medium {background: #FFE88A; box-shadow: inset 0 -3px 0 #9A5B00;}
 .rf-listing mark.m-low {background: #FFF3BF;}
-.rf-listing.rf-muted {opacity: 0.9;}
+.rf-listing.rf-muted {opacity: 0.95;}
 
 .rf-flag {background: #fff; border: 1px solid #D5DBE3; border-left: 6px solid var(--sev);
   border-radius: 6px; padding: 0.8rem 1rem; margin: 0 0 0.7rem 0;}
@@ -132,8 +183,61 @@ header[data-testid="stHeader"] {background: transparent;}
 .rf-disclaimer {margin-top: 1.6rem; font-size: 0.85rem; color: #4A5B6D; line-height: 1.5;
   border-top: 1px solid #D5DBE3; padding-top: 0.8rem;}
 .rf-empty {color: #2B3A4A; line-height: 1.55; margin: 0.9rem 0 0 0;}
+
+@media (prefers-color-scheme: dark) {
+.rf-help, .rf-small, .rf-note, .rf-empty, .rf-disclaimer, .rf-gauge-scale, .nz-foot {color: #B7C3D1;}
+.rf-note b, .rf-h, .nz-h2, .nz-word {color: #F2F5F8;}
+.rf-advice {color: #E4EAF1;}
+.rf-disclaimer, .nz-foot {border-top-color: #3A4656;}
+.rf-gauge i {background: #F2F5F8;}
+}
 </style>
 """
+
+TOP_HTML = (
+    '<div class="nz-top"><div class="nz-word"><mark>Nesty</mark></div>'
+    '<div class="nz-links">'
+    f'<a href="{REPO_URL}" target="_blank" rel="noopener">View on GitHub</a>'
+    '<span class="nz-pill">Open source, MIT</span>'
+    f'<span class="nz-pill">Built with {AI_NAME}</span></div></div>'
+)
+
+HERO_HTML = (
+    '<div class="nz-hero">'
+    '<div class="nz-h1">Check a rental listing before you pay.</div>'
+    '<p class="nz-sub">Paste a listing, get a verdict in 10 seconds. Nesty finds the warning signs '
+    'scammers use on students, and explains each one in plain English.</p>'
+    '<div class="nz-trust"><span>Free to use</span><span>No sign up</span>'
+    '<span>Nothing is saved</span><span>Open source</span></div>'
+    '<p class="nz-fact">Rental fraud cost UK victims about £9m in 2024, around £1,800 each, '
+    'according to Action Fraud. Students and young people are targeted often.</p>'
+    '</div>'
+)
+
+STEPS_HTML = (
+    '<div class="nz-steps">'
+    '<div class="nz-step"><span class="nz-num">1</span><b>Paste</b>'
+    '<p>Paste the listing and any messages from the landlord. Add the rent and city if you know them.</p></div>'
+    '<div class="nz-step"><span class="nz-num">2</span><b>Nesty checks</b>'
+    f'<p>Clear rules look for known scam patterns. {AI_NAME}, an open weight AI model, reads for the subtler signs.</p></div>'
+    '<div class="nz-step"><span class="nz-num">3</span><b>Know what to do</b>'
+    '<p>You get a risk level, the exact words that worry us, and what to do next.</p></div>'
+    '</div>'
+)
+
+CHECKS_HTML = '<div class="nz-chips">' + "".join(f'<span class="nz-chip">{c}</span>' for c in CHECKS) + '</div>'
+
+OSS_HTML = (
+    '<div class="nz-oss"><p><b>Nesty is open source.</b> The rules, the scoring and this page are all in the '
+    f'public repository under the MIT license, so you can read exactly how every verdict is made. '
+    f'The AI part uses {AI_NAME}, an open weight model, under its own license terms.</p>'
+    f'<a class="nz-btn" href="{REPO_URL}" target="_blank" rel="noopener">View the code</a></div>'
+)
+
+FOOT_HTML = (
+    '<div class="nz-foot">Nesty shows signs often seen in rental scams. It can be wrong, and it is not proof '
+    'about any person. It does not save what you paste. Built at a Hacktoberfest Hack Day.</div>'
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -255,115 +359,120 @@ def load_example(index):
 # Page
 # ---------------------------------------------------------------------------
 st.markdown(CSS, unsafe_allow_html=True)
-st.markdown('<h1 class="rf-title"><mark>Red</mark> Flat</h1>', unsafe_allow_html=True)
-st.markdown('<p class="rf-tagline">Paste a listing, get a verdict in 10 seconds.</p>',
-            unsafe_allow_html=True)
+st.markdown(TOP_HTML, unsafe_allow_html=True)
+st.markdown(HERO_HTML, unsafe_allow_html=True)
 
 left, right = st.columns([5, 6], gap="large")
 
 with left:
-    st.text_area("Paste the listing", key="listing", height=270,
-                 placeholder="Paste the text of the listing here.")
-    st.markdown('<p class="rf-help">Add the landlord’s messages too if you have them. '
-                'Price and city are optional, but they let us check if the rent is far too low.</p>',
-                unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    with c1:
-        st.number_input("Monthly rent in £ (optional)", key="price", value=None,
-                        min_value=0, step=10, format="%d", placeholder="e.g. 450")
-    with c2:
-        st.selectbox("City (optional)", [NOT_SURE] + CITIES, key="city")
-    st.button("Check listing", type="primary", use_container_width=True, on_click=start_check)
+    with st.container(border=True):
+        st.text_area("Paste the listing", key="listing", height=270,
+                     placeholder="Paste the text of the listing here.")
+        st.markdown('<p class="rf-help">Add the landlord’s messages too if you have them. '
+                    'Price and city are optional, but they let us check if the rent is far too low.</p>',
+                    unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            st.number_input("Monthly rent in £ (optional)", key="price", value=None,
+                            min_value=0, step=10, format="%d", placeholder="e.g. 450")
+        with c2:
+            st.selectbox("City (optional)", [NOT_SURE] + CITIES, key="city")
+        st.button("Check listing", type="primary", use_container_width=True, on_click=start_check)
 
-    st.markdown('<p class="rf-small" style="margin-top:1.3rem;margin-bottom:0.4rem;">'
-                'No listing handy? Try an example.</p>', unsafe_allow_html=True)
-    cols = st.columns(len(EXAMPLES))
-    for i, (label, _f, _p, _c) in enumerate(EXAMPLES):
-        with cols[i]:
-            st.button(label, key=f"example_{i}", use_container_width=True,
-                      on_click=load_example, args=(i,))
-    st.markdown('<p class="rf-small" style="margin-top:1rem;">Red Flat does not save what you paste.</p>',
-                unsafe_allow_html=True)
+        st.markdown('<p class="rf-small" style="margin-top:1.2rem;margin-bottom:0.4rem;">'
+                    'No listing handy? Try an example.</p>', unsafe_allow_html=True)
+        cols = st.columns(len(EXAMPLES))
+        for i, (label, _f, _p, _c) in enumerate(EXAMPLES):
+            with cols[i]:
+                st.button(label, key=f"example_{i}", use_container_width=True,
+                          on_click=load_example, args=(i,))
 
 with right:
-    if st.session_state.pending:
-        st.session_state.pending = False
-        text = (st.session_state.listing or "").strip()
-        if not text:
-            st.session_state.result = None
-            st.session_state.message = "Paste the text of a listing first, then press Check listing."
-        else:
-            price = st.session_state.price
-            price = int(price) if price else None
-            city = st.session_state.city
-            city = None if city in (None, NOT_SURE) else city
-            with st.spinner(f"{AI_NAME} is checking the listing..."):
-                result, demo = run_check(text, price, city)
-            st.session_state.checked_text = text
-            st.session_state.is_demo = demo
-            if result is None:
+    with st.container(border=True):
+        if st.session_state.pending:
+            st.session_state.pending = False
+            text = (st.session_state.listing or "").strip()
+            if not text:
                 st.session_state.result = None
-                st.session_state.message = "Something went wrong while checking. Please try again."
+                st.session_state.message = "Paste the text of a listing first, then press Check listing."
             else:
-                st.session_state.result = result
-                st.session_state.message = ""
+                price = st.session_state.price
+                price = int(price) if price else None
+                city = st.session_state.city
+                city = None if city in (None, NOT_SURE) else city
+                with st.spinner(f"{AI_NAME} is checking the listing..."):
+                    result, demo = run_check(text, price, city)
+                st.session_state.checked_text = text
+                st.session_state.is_demo = demo
+                if result is None:
+                    st.session_state.result = None
+                    st.session_state.message = "Something went wrong while checking. Please try again."
+                else:
+                    st.session_state.result = result
+                    st.session_state.message = ""
 
-    result = st.session_state.result
-    if result is None:
-        if st.session_state.message:
-            st.warning(st.session_state.message)
-        st.markdown(
-            '<div class="rf-listing rf-muted">' + highlight_html(PREVIEW_TEXT, PREVIEW_FLAGS) + '</div>'
-            '<p class="rf-empty">Your result will appear here. Red Flat marks the warning signs in the '
-            'listing like a highlighter pen, explains each one in plain words, and tells you what to do next.</p>',
-            unsafe_allow_html=True)
-    else:
-        label, colour, sentence = LEVELS[result["level"]]
-        score = result["score"]
-        st.markdown(
-            f'<div class="rf-badge" style="--lv:{colour}">'
-            f'<div><div class="rf-badge-label">{esc(label)}</div>'
-            f'<div class="rf-badge-text">{esc(sentence)}</div></div>'
-            f'<div class="rf-badge-score"><span>{score}</span><small>out of 100</small></div></div>'
-            f'<div class="rf-gauge"><i style="left:{score}%"></i></div>'
-            '<div class="rf-gauge-scale"><span>0</span><span>30</span><span>60</span><span>100</span></div>',
-            unsafe_allow_html=True)
-
-        if result["ai_available"]:
-            note = f'<b>Checked by rules and {esc(AI_NAME)}.</b>'
-        else:
-            note = '<b>AI check unavailable.</b> Showing the rule checks only.'
-        if st.session_state.is_demo:
-            note += ' This is demo data.'
-        st.markdown(f'<p class="rf-note">{note}</p>', unsafe_allow_html=True)
-
-        checked = st.session_state.checked_text
-        if checked and any(f["quote"] for f in result["flags"]):
-            st.markdown('<div class="rf-h">Your listing, with the warning signs marked</div>'
-                        '<div class="rf-listing">' + highlight_html(checked, result["flags"]) + '</div>',
-                        unsafe_allow_html=True)
-
-        st.markdown('<div class="rf-h">What we found</div>', unsafe_allow_html=True)
-        if not result["flags"]:
-            st.markdown('<p class="rf-reason">No warning signs found in the text you pasted.</p>',
-                        unsafe_allow_html=True)
-        for f in result["flags"]:
-            source = AI_NAME if f["source"] == "ai" else "Rule"
-            quote = f'<div class="rf-quote">“{esc(f["quote"])}”</div>' if f["quote"] else ""
+        result = st.session_state.result
+        if result is None:
+            if st.session_state.message:
+                st.warning(st.session_state.message)
             st.markdown(
-                f'<div class="rf-flag sev-{f["severity"]}"><div class="rf-flag-head">'
-                f'<span class="rf-chip">{SEVERITY_LABEL[f["severity"]]}</span>'
-                f'<span class="rf-src">{esc(source)}</span></div>'
-                f'<div class="rf-flag-title">{esc(f["title"])}</div>{quote}'
-                f'<div class="rf-reason">{esc(f["reason"])}</div></div>',
+                '<div class="rf-listing rf-muted">' + highlight_html(PREVIEW_TEXT, PREVIEW_FLAGS) + '</div>'
+                f'<p class="rf-empty">Your result will appear here. {APP_NAME} marks the warning signs in the '
+                'listing like a highlighter pen, explains each one in plain words, and tells you what to do next.</p>',
+                unsafe_allow_html=True)
+        else:
+            label, colour, sentence = LEVELS[result["level"]]
+            score = result["score"]
+            st.markdown(
+                f'<div class="rf-badge" style="--lv:{colour}">'
+                f'<div><div class="rf-badge-label">{esc(label)}</div>'
+                f'<div class="rf-badge-text">{esc(sentence)}</div></div>'
+                f'<div class="rf-badge-score"><span>{score}</span><small>out of 100</small></div></div>'
+                f'<div class="rf-gauge"><i style="left:{score}%"></i></div>'
+                '<div class="rf-gauge-scale"><span>0</span><span>30</span><span>60</span><span>100</span></div>',
                 unsafe_allow_html=True)
 
-        if result["advice"]:
-            items = "".join(f"<li>{esc(a)}</li>" for a in result["advice"])
-            st.markdown(f'<div class="rf-h">What to do next</div><ul class="rf-advice">{items}</ul>',
-                        unsafe_allow_html=True)
+            if result["ai_available"]:
+                note = f'<b>Checked by rules and {esc(AI_NAME)}.</b>'
+            else:
+                note = '<b>AI check unavailable.</b> Showing the rule checks only.'
+            if st.session_state.is_demo:
+                note += ' This is demo data.'
+            st.markdown(f'<p class="rf-note">{note}</p>', unsafe_allow_html=True)
 
-    st.markdown('<div class="rf-disclaimer">Red Flat shows signs often seen in rental scams. '
-                'It can be wrong, and it is not proof about any person. '
-                'Never pay before you have viewed the home and read the tenancy agreement.</div>',
-                unsafe_allow_html=True)
+            checked = st.session_state.checked_text
+            if checked and any(f["quote"] for f in result["flags"]):
+                st.markdown('<div class="rf-h">Your listing, with the warning signs marked</div>'
+                            '<div class="rf-listing">' + highlight_html(checked, result["flags"]) + '</div>',
+                            unsafe_allow_html=True)
+
+            st.markdown('<div class="rf-h">What we found</div>', unsafe_allow_html=True)
+            if not result["flags"]:
+                st.markdown('<p class="rf-empty">No warning signs found in the text you pasted.</p>',
+                            unsafe_allow_html=True)
+            for f in result["flags"]:
+                source = AI_NAME if f["source"] == "ai" else "Rule"
+                quote = f'<div class="rf-quote">“{esc(f["quote"])}”</div>' if f["quote"] else ""
+                st.markdown(
+                    f'<div class="rf-flag sev-{f["severity"]}"><div class="rf-flag-head">'
+                    f'<span class="rf-chip">{SEVERITY_LABEL[f["severity"]]}</span>'
+                    f'<span class="rf-src">{esc(source)}</span></div>'
+                    f'<div class="rf-flag-title">{esc(f["title"])}</div>{quote}'
+                    f'<div class="rf-reason">{esc(f["reason"])}</div></div>',
+                    unsafe_allow_html=True)
+
+            if result["advice"]:
+                items = "".join(f"<li>{esc(a)}</li>" for a in result["advice"])
+                st.markdown(f'<div class="rf-h">What to do next</div><ul class="rf-advice">{items}</ul>',
+                            unsafe_allow_html=True)
+
+        st.markdown('<div class="rf-disclaimer">Never pay before you have viewed the home and read the '
+                    'tenancy agreement. Nesty can be wrong.</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="nz-h2">How Nesty works</div>', unsafe_allow_html=True)
+st.markdown(STEPS_HTML, unsafe_allow_html=True)
+st.markdown('<div class="nz-h2">What Nesty looks for</div>', unsafe_allow_html=True)
+st.markdown(CHECKS_HTML, unsafe_allow_html=True)
+st.markdown('<div class="nz-h2">Open source</div>', unsafe_allow_html=True)
+st.markdown(OSS_HTML, unsafe_allow_html=True)
+st.markdown(FOOT_HTML, unsafe_allow_html=True)
